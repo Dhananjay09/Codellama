@@ -30,6 +30,18 @@ class MetaLLMA2Model(Model):
         )
         self.ready = True
 
+    def get_generator(self, params, source_text):
+        generator_input = {
+            'eos_token_id':self.tokenizer.eos_token_id,
+        }
+        if params:
+            for key,value in params.items():
+                    generator_input[key] = value
+
+        answer = self.pipeline(source_text, **generator_input)
+        return answer
+    
+
     def predict(self, payload: Dict, headers: Dict[str, str] = None) -> Dict:
         print("payload:", payload)
         inputs = payload["instances"]
@@ -37,25 +49,14 @@ class MetaLLMA2Model(Model):
         results = []
 
         for input in inputs:
-            source_text = input.get("text")
-            max_length = input.get("max_length", 100)
-            do_sample = input.get("do_sample", True)
-            top_k = input.get("top_k", 10)
-            top_p = input.get("top_p", 0.95)
-
-            sequences = self.pipeline(source_text,
-                                    do_sample=do_sample,
-                                    top_k=top_k,
-                                    top_p=top_p,
-                                    num_return_sequences=1,
-                                    eos_token_id=self.tokenizer.eos_token_id,
-                                    max_length=max_length,
-                                    )
-
+            source_text = input.pop("text")
+            sequences = self.get_generator(params=input, source_text=source_text)
             result = []
+
             for seq in sequences:
                 print(f"Result: {seq['generated_text']}")
                 result.append(seq['generated_text'])
+
             results.append(result)
         
         return {"predictions": results}
