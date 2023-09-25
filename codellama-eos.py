@@ -36,7 +36,7 @@ class MetaLLMA2Model(Model):
         }
         if params:
             for key,value in params.items():
-                    generator_input[key] = value
+                generator_input[key] = value
 
         answer = self.pipeline(source_text, **generator_input)
         return answer
